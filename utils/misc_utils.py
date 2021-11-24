@@ -333,7 +333,6 @@ def compare_files_by_checksum(_1st_file_path, _2nd_file_path, follow_symlinks=Fa
     """
     try:
         if os.path.exists(_1st_file_path) != os.path.exists(_2nd_file_path):
-            log.info(f"IDANMZ DEBUG ==> compare_files_by_checksum exist(_1st_file_path) '{os.path.exists(_1st_file_path)}' != exist(_2nd_file_path) '{os.path.exists(_2nd_file_path)}'")
             return False
         _1st_checksum = get_file_checksum(_1st_file_path, follow_symlinks)
         _2nd_checksum = get_file_checksum(_2nd_file_path, follow_symlinks)
