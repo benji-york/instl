@@ -285,8 +285,11 @@ no_flags_patterns: if a file matching one of these patterns exists in the destin
                 if avoid_copy_marker in src_file_names:
                     src_marker = Path(src, avoid_copy_marker)
                     dst_marker = Path(dst, avoid_copy_marker)
+                    log.info(f"IDANMZ DEBUG ==> should_copy_dir avoid_copy_marker '{avoid_copy_marker}' in src_file_names '{src_file_names}'")
+                    log.info(f"IDANMZ DEBUG ==> should_copy_dir compare checksums src_marker '{src_marker}' => dst_marker '{dst_marker}'")
                     retVal = not utils.compare_files_by_checksum(dst_marker, src_marker)
                     if not retVal:
+                        log.info(f"IDANMZ DEBUG ==> should_copy_dir checksum are the same")
                         log.debug(f"{self.progress_msg()} skip copy folder, same checksum '{src_marker}' and '{dst_marker}'")
                         break
             else:
@@ -394,6 +397,7 @@ no_flags_patterns: if a file matching one of these patterns exists in the destin
         src_file_names = [src_item.name for src_item in src_dir_items if src_item.is_file()]
         src_dir_names = [src_item.name for src_item in src_dir_items if src_item.is_dir()]
         if not self.should_copy_dir(src, dst, src_file_names):
+            log.info(f"IDANMZ DEBUG ==> copy_tree skipped dir src'{src}' dst '{dst}' src_file_names '{src_file_names}'")
             self.statistics['skipped_dirs'] += 1
             return
 
@@ -405,12 +409,14 @@ no_flags_patterns: if a file matching one of these patterns exists in the destin
             dir_maker()
 
         if not self.top_destination_does_not_exist and self.delete_extraneous_files:
+            log.info(f"IDANMZ DEBUG ==> copy_tree delete_extraneous_files '{dst}', '{src_file_names+src_dir_names}'")
             self.remove_extraneous_files(dst, src_file_names+src_dir_names)
 
         errors = []
         for src_item in src_dir_items:
             src_item_path = Path(src_item.path)
             if self.should_ignore_file(src_item_path):
+                log.info(f"IDANMZ DEBUG ==> copy_tree ignored src_item_path '{src_item_path}'")
                 self.statistics['ignored'] += 1
                 continue
             dst_path = dst.joinpath(src_item.name)
@@ -474,6 +480,7 @@ class CopyDirToDir(RsyncClone):
         resolved_dst: Path = utils.ExpandAndResolvePath(self.dst)
         final_dst: Path = resolved_dst.joinpath(resolved_src.name)
         self.top_destination_does_not_exist = not final_dst.exists()
+        log.info(f"IDANMZ DEBUG ==> CopyDirToDir resolved_src '{resolved_src}' resolved_dst '{resolved_dst}'")
         self.copy_tree(resolved_src, final_dst)
 
 
