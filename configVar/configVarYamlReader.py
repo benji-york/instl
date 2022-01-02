@@ -7,6 +7,7 @@ import sys
 import re
 from contextlib import contextmanager
 import logging
+
 log = logging.getLogger()
 
 import aYaml
@@ -62,7 +63,8 @@ class ConfigVarYamlReader(aYaml.YamlReader):
                     elif self._allow_reading_of_internal_vars or not internal_identifier_re.match(
                             identifier):  # do not read internal state identifiers
                         values = self.read_values_for_config_var(contents, identifier, **kwargs)
-                        the_config_var = self.config_vars.setdefault(key=identifier, default=None, callback_when_value_is_set=None)
+                        the_config_var = self.config_vars.setdefault(key=identifier, default=None,
+                                                                     callback_when_value_is_set=None)
                         if contents.tag != "!+=":
                             the_config_var.clear()
                         the_config_var.extend(values)
@@ -74,20 +76,41 @@ class ConfigVarYamlReader(aYaml.YamlReader):
                 with kwargs['node-stack'](contents):
                     if identifier in ("__include__", "__include_if_exist__"):
                         raise ValueError("!define_if_not_exist doc cannot except __include__ and __include_if_exist__")
-                    if self._allow_reading_of_internal_vars or not internal_identifier_re.match(identifier):  # do not read internal state identifiers
+                    if self._allow_reading_of_internal_vars or not internal_identifier_re.match(
+                            identifier):  # do not read internal state identifiers
                         if identifier not in self.config_vars:
                             values = self.read_values_for_config_var(contents, identifier, **kwargs)
                             self.config_vars[identifier] = values
 
+    # #0 should be the key, 1 the value
+    #     def get_keys_from_tree_node(self,node):
+    #         #1->value[1]->value[0]->value[1]
+    #         #value[1]->value[1]->value[1]
+    def get_dict_from_item_node(self, node):
+        dict = {node.value[0][1].value[0].value[0][1].value: node.value[0][1].value[1].value[0][1].value}
+        return dict
+
     def read_values_for_config_var(self, _contents, _identifier, **kwargs):
         values = list()
-
+        new_dict = {}
         for item in _contents:
             with kwargs['node-stack'](item):
                 if isinstance(item.value, (str, int, type(None))):
                     values.append(item.value)
+
+                elif isinstance(item.value, (list)):
+                    values.append(self.get_dict_from_item_node(item))
                 else:
-                    raise TypeError(f"Values for configVar {_identifier} should be of type str or int not {type(item.value)}")
+                    raise TypeError(
+                        f"Values for configVar {_identifier} should be of type str or int not {type(item.value)}")
+        for item in values:
+            if isinstance(item, (dict)):
+                for key, val in item.items():
+                    new_dict[key] = val
+            else:
+                break
+        if len(new_dict.values()):
+            return new_dict
         return values
 
     def read_include_node(self, i_node, *args, **kwargs):
@@ -101,17 +124,16 @@ class ConfigVarYamlReader(aYaml.YamlReader):
         if match:
             condition = match['condition']
             if_type = match['if_type']
-            if if_type == "def":     # __ifdef__: if configVar is defined
+            if if_type == "def":  # __ifdef__: if configVar is defined
                 if condition in self.config_vars:
                     self.read_defines(contents, **kwargs)
             elif if_type == "ndef":  # __ifndef__: if configVar is not defined
                 if condition not in self.config_vars:
                     self.read_defines(contents, **kwargs)
-            elif if_type == "":      # "__if__: eval the condition
+            elif if_type == "":  # "__if__: eval the condition
                 resolved_condition = self.config_vars.resolve_str(condition)
                 condition_result = eval(resolved_condition)
                 if condition_result:
                     self.read_defines(contents, **kwargs)
         else:
             log.warning(f"unknown conditional {identifier}")
-

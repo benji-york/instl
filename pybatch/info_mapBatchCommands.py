@@ -111,31 +111,21 @@ class CheckDownloadFolderChecksum(DBManager, PythonBatchCommandBase):
     def re_download_bad_files(self):
         try:
             download_path = None
-            cookies = self.get_cookie_dict_from_str()
-            with requests.Session() as dl_session:
-                dl_session.cookies = cookiejar_from_dict(cookies)
-                for file_item in self.lists_of_files["to redownload"]:
-                    download_url = self.info_map_table.get_sync_url_for_file_item(file_item)
-                    download_path = file_item.download_path
-                    with DownloadFileAndCheckChecksum(download_url, download_path, file_item.checksum, report_own_progress=False) as dler:
-                        dler(session=dl_session)
-                        super().increment_and_output_progress(increment_by=0, prog_msg=f"redownloaded {file_item.download_path}")
-                        self.num_bad_files -=1
+            url_to_path = {}
+
+            for file_item in self.lists_of_files["to redownload"]:
+                download_url = self.info_map_table.get_sync_url_for_file_item(file_item)
+                download_path = file_item.download_path
+                url_to_path[download_url] = download_path
+            with DownloadFileAndCheckChecksum(url_to_path=url_to_path, checksum=file_item.checksum, report_own_progress=False) as dler:
+                dler()
+                super().increment_and_output_progress(increment_by=0, prog_msg=f"redownloaded {file_item.download_path}")
+                self.num_bad_files -=1
         except Exception as ex:
             log.error(f"""Exception while redownloading {download_path}, {ex}""")
             super().increment_and_output_progress(increment_by=0, prog_msg=f"""Exception while redownloading {download_path}, {ex}""")
 
-    @staticmethod
-    def get_cookie_dict_from_str():
-        cookie_str = config_vars["COOKIE_JAR"].str()
-        cookie = SimpleCookie()
-        cookie.load(cookie_str)
-        cookies = {}
-        for key, morsel in cookie.items():
-            if ":" in key:
-                key = key.split(":")[1]
-            cookies[key] = morsel.value
-        return cookies
+
 
     def is_checksum_ok(self) -> bool:
         retVal = self.num_bad_files == 0

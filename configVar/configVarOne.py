@@ -188,6 +188,11 @@ class ConfigVar:
     def float(self) -> float:
         return float(self)
 
+    def dict(self) -> dict:
+        for i in iter(self):
+            return i
+
+
     def __getitem__(self, index: int) -> str:
         """
         calls the owner to resolve one of the values by it's index.
@@ -207,7 +212,9 @@ class ConfigVar:
             :param value: either str or int (TBD is limitations needed ?)
             None values are ignored and not appended (TBD should we allow None values? or is empty list enough?)
         """
-        if value is not None:
+        if isinstance(value, dict):
+            self.values.append(value)
+        elif value is not None:
             self.values.append(str(value))
             self.callback_when_value_is_set(self.name, value)
 
@@ -220,11 +227,15 @@ class ConfigVar:
         if isinstance(values, (str, int, float, type(None))):
             # so str will not be treated as a list of characters
             self.append(values)
-        elif isinstance(values, collections.abc.Sequence):
+        elif isinstance(values, collections.abc.Sequence) :
             for val in values:
                 self.extend(val)  # flatten nested lists
+        elif isinstance(values,dict):
+            self.append(values)
         elif isinstance(values, os.PathLike):
             self.append(os.fspath(values))
+        # elif isinstance(values,dict()):
+
         else:
             raise TypeError(f"configVar('{self.name}') type of values '{values}' should be str int or sequence not {type(values)}")
 
