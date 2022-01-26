@@ -46,6 +46,9 @@ class DownloadFiles(PythonBatchCommandBase):
         bla = dict([i.split(':') for i in config_vars[name].str()])
         return bla
 
+
+## todo - revisit         PythonBatchCommandBase.__call__(self, *args, **kwargs)
+
     def __call__(self, *args, **kwargs):
         PythonBatchCommandBase.__call__(self, *args, **kwargs)
         with requests.Session() as dl_session:
@@ -54,7 +57,7 @@ class DownloadFiles(PythonBatchCommandBase):
             cookies = self.get_cookie_dict_from_str(self.cookie)
             if not self.url_path_dict:
                 #self.url_path_dict = self.build_url_path_dict("PATH_FILE_LIST")
-                self.url_path_dict = config_vars['PATHS'].dict()
+                self.url_path_dict = config_vars['PATHS'].dict() #should change
             dl_session.cookies = cookiejar_from_dict(cookies)
             for url, path in self.url_path_dict.items():
                 url = config_vars.resolve_str(url)
@@ -88,7 +91,8 @@ class DownloadFileAndCheckChecksum(DownloadFiles):
     def __call__(self, *args, **kwargs):
         PythonBatchCommandBase.__call__(self, *args, **kwargs)
         try:
-            DownloadFiles.__call__(self, *args, **kwargs)
+            with DownloadFiles( *args, **kwargs) as dler:
+                dler()
             checksum_ok = utils.check_file_checksum(self.path, self.checksum)
             if not checksum_ok:
                 raise ValueError(f"bad checksum for {self.path} even after re-download")
