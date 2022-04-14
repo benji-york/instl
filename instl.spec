@@ -70,6 +70,7 @@ exe = EXE(pyz,
           name='instl',
           debug=False,
           strip=None,
+          target_arch='universal2',
           upx=False, # does not work even if True
           runtime_tmpdir="runtime_tmpdir",
           console=True )
