@@ -3,7 +3,7 @@ future
 networkx
 packaging
 psutil
-PyInstaller
+PyInstaller=4.10
 PyYAML==6.0
 requests
 xmltodict
